@@ -12,11 +12,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type apiConfig struct {
+	hits      atomic.Int32
+	db        *database.Queries
+	jwtSecret string
+}
+
 func main() {
 	port := "8080"
 
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	jwtSecret := os.Getenv("JWT_SECRET")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -28,7 +35,11 @@ func main() {
 	apiMux := http.NewServeMux()
 	adminMux := http.NewServeMux()
 
-	apiCfg := &apiConfig{hits: atomic.Int32{}, db: dbQueries}
+	apiCfg := &apiConfig{
+		hits:      atomic.Int32{},
+		db:        dbQueries,
+		jwtSecret: jwtSecret,
+	}
 
 	fileServer := http.StripPrefix("/app/", http.FileServer(http.Dir("./")))
 
@@ -40,9 +51,14 @@ func main() {
 	})
 	apiMux.HandleFunc("POST /validate_chirp", validateChirp)
 	apiMux.HandleFunc("POST /users", apiCfg.HandleCreateUser)
+	apiMux.HandleFunc("PUT /users", apiCfg.HandleUpdateUsers)
+	apiMux.HandleFunc("POST /login", apiCfg.HandleLoginUser)
 	apiMux.HandleFunc("POST /chirps", apiCfg.HandleCreateChirp)
 	apiMux.HandleFunc("GET /chirps", apiCfg.HandleGetChirps)
-	apiMux.HandleFunc("GET /chirps/{chirpId}", apiCfg.HandleGetChirpByID)
+	apiMux.HandleFunc("GET /chirps/{chirpID}", apiCfg.HandleGetChirpByID)
+	apiMux.HandleFunc("POST /refresh", apiCfg.HandleRefresh)
+	apiMux.HandleFunc("POST /revoke", apiCfg.handleRevoke)
+	apiMux.Handle("DELETE /chirps/{chirpID}", apiCfg.authorize(http.HandlerFunc(apiCfg.HandleDeleteChirps)))
 
 	adminMux.HandleFunc("GET /metrics", apiCfg.fileServerHits)
 	adminMux.HandleFunc("POST /reset", apiCfg.fileServerReset)
