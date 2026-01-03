@@ -16,7 +16,7 @@ INSERT INTO users (id, created_at, updated_at, email, password)
 VALUES (
     $1, NOW(), NOW(), $2, $3
 )
-RETURNING id, created_at, updated_at, email, password
+RETURNING id, created_at, updated_at, email, password, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -34,12 +34,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.Password,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, created_at, updated_at, email, password
+SELECT id, created_at, updated_at, email, password, is_chirpy_red
 FROM users
 WHERE email = $1
 `
@@ -53,6 +54,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.UpdatedAt,
 		&i.Email,
 		&i.Password,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -61,7 +63,7 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET updated_at = NOW(), email = $1, password = $2
 WHERE id = $3
-RETURNING id, created_at, updated_at, email, password
+RETURNING id, created_at, updated_at, email, password, is_chirpy_red
 `
 
 type UpdateUserParams struct {
@@ -79,6 +81,28 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.Password,
+		&i.IsChirpyRed,
+	)
+	return i, err
+}
+
+const upgradeUser = `-- name: UpgradeUser :one
+UPDATE users
+SET updated_at = NOW(), is_chirpy_red = TRUE
+WHERE id = $1
+RETURNING id, created_at, updated_at, email, password, is_chirpy_red
+`
+
+func (q *Queries) UpgradeUser(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, upgradeUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Password,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }

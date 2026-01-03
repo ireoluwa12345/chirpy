@@ -7,7 +7,7 @@ RETURNING *;
 
 -- name: GetChirps :many
 SELECT id, created_at, updated_at, user_id, body
-FROM chirps;
+FROM chirps ORDER BY created_at DESC;
 
 -- name: GetChirpByID :one
 SELECT id, created_at, updated_at, user_id, body

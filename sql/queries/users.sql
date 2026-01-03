@@ -6,7 +6,7 @@ VALUES (
 RETURNING *;
 
 -- name: GetUserByEmail :one
-SELECT id, created_at, updated_at, email, password
+SELECT id, created_at, updated_at, email, password, is_chirpy_red
 FROM users
 WHERE email = $1;
 
@@ -14,4 +14,10 @@ WHERE email = $1;
 UPDATE users
 SET updated_at = NOW(), email = $1, password = $2
 WHERE id = $3
+RETURNING *;
+
+-- name: UpgradeUser :one
+UPDATE users
+SET updated_at = NOW(), is_chirpy_red = TRUE
+WHERE id = $1
 RETURNING *;

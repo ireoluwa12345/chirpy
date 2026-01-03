@@ -100,3 +100,15 @@ func MakeRefreshToken() (string, error) {
 
 	return tokenHex, nil
 }
+
+func GetAPIKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+
+	if authHeader == "" {
+		return "", errors.New("authorization header missing")
+	}
+
+	authToken := strings.TrimPrefix(authHeader, "ApiKey ")
+
+	return authToken, nil
+}
